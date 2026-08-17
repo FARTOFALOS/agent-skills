@@ -1,34 +1,53 @@
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$skillSource = Join-Path $repoRoot 'skills\decisions'
+$skillsRoot = Join-Path $repoRoot 'skills'
 
-if (-not (Test-Path $skillSource)) {
-    throw "Skill source not found: $skillSource"
+if (-not (Test-Path $skillsRoot)) {
+    throw "Skills directory not found: $skillsRoot"
 }
 
-$targets = @(
-    (Join-Path $HOME '.agents\skills\decisions'),
-    (Join-Path $HOME '.claude\skills\decisions')
+$skills = Get-ChildItem -Path $skillsRoot -Directory | Where-Object {
+    Test-Path (Join-Path $_.FullName 'SKILL.md')
+}
+
+if (-not $skills) {
+    throw "No installable skills found under: $skillsRoot"
+}
+
+$platforms = @(
+    @{ Name = 'Codex'; Root = (Join-Path $HOME '.agents\skills') },
+    @{ Name = 'Claude Code'; Root = (Join-Path $HOME '.claude\skills') }
 )
 
-foreach ($target in $targets) {
-    $parent = Split-Path -Parent $target
-    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+foreach ($platform in $platforms) {
+    New-Item -ItemType Directory -Force -Path $platform.Root | Out-Null
 
-    if (Test-Path $target) {
-        Write-Host "SKIP: $target already exists. Remove or rename it manually if you want to replace it."
-        continue
-    }
+    foreach ($skill in $skills) {
+        $source = $skill.FullName
+        $target = Join-Path $platform.Root $skill.Name
 
-    if ($IsWindows -or $env:OS -eq 'Windows_NT') {
-        New-Item -ItemType Junction -Path $target -Target $skillSource | Out-Null
-    }
-    else {
-        New-Item -ItemType SymbolicLink -Path $target -Target $skillSource | Out-Null
-    }
+        if (Test-Path $target) {
+            $existing = Get-Item -Force $target
+            $targets = @($existing.Target)
+            if ($existing.LinkType -in @('Junction', 'SymbolicLink') -and $targets -contains $source) {
+                Write-Host "OK: $($platform.Name) / $($skill.Name) already linked -> $source"
+            }
+            else {
+                Write-Host "SKIP: $target already exists and is not the expected link."
+            }
+            continue
+        }
 
-    Write-Host "INSTALLED: $target -> $skillSource"
+        if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+            New-Item -ItemType Junction -Path $target -Target $source | Out-Null
+        }
+        else {
+            New-Item -ItemType SymbolicLink -Path $target -Target $source | Out-Null
+        }
+
+        Write-Host "INSTALLED: $($platform.Name) / $($skill.Name) -> $source"
+    }
 }
 
-Write-Host 'Done. Restart or reopen Codex / Claude Code if the skill is not immediately discovered.'
+Write-Host 'Done. Existing linked skills update through git pull; rerun this installer after adding new skill directories.'

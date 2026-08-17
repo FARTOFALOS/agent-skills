@@ -1,0 +1,29 @@
+schema_version: 1
+update_mode: manual
+
+skills:
+  decisions:
+    local_path: skills/decisions/SKILL.md
+    upstream:
+      repository: davidondrej/skills
+      ref: main
+      path: skills/thinking-and-docs/decisions/SKILL.md
+      name: decisions
+      last_synced_commit: 6f96a51130dcaec58104e929d3d86be41ce67551
+      last_synced_blob: 9553582d22c628e96b7a7197ce597b8a59f376ab
+    import_mode: vendored-copy
+    local_overrides: []
+    license: MIT
+
+  nativeprompt:
+    local_path: skills/nativeprompt/SKILL.md
+    upstream:
+      repository: edvardgrishin27/nativeprompt
+      ref: main
+      path: SKILL.md
+      name: nativeprompt
+      last_synced_commit: 33ef11b6d9fc70e1922601d14efbbc7d6953e63a
+      last_synced_blob: 7fbcf8cea144f6e22582194ebbf808d3b623ac1e
+    import_mode: vendored-copy
+    local_overrides: []
+    license: MIT

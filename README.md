@@ -46,30 +46,40 @@ Clone this repository once, then run from PowerShell:
 .\scripts\install-global.ps1
 ```
 
-The installer discovers every directory under `skills/` that contains a `SKILL.md` and creates global links for it:
+The installer discovers every directory under `skills/` that contains a `SKILL.md`.
+
+### Codex delivery
+
+Codex gets a global filesystem link:
 
 ```text
-Codex:       ~/.agents/skills/<skill-name>
-Claude Code: ~/.claude/skills/<skill-name>
+~/.agents/skills/<skill-name> -> canonical checkout
 ```
 
-The links point to the same canonical local checkout. Existing correct links are left in place. Any conflicting path is skipped rather than overwritten.
+This keeps Codex directly on the canonical local skill directory.
 
-### Updating skills
+### Claude Code delivery
 
-For changes to already linked skills:
+Claude Code gets a managed real directory at its documented personal-skill location:
+
+```text
+~/.claude/skills/<skill-name>/SKILL.md
+```
+
+The installer copies from the canonical checkout and writes `.agent-skills-managed` so it can distinguish its own derived copies from user-owned directories. It never overwrites an unmarked conflicting Claude skill.
+
+Older Claude junctions created by previous versions of this installer are migrated automatically when they point to the same canonical skill source.
+
+## Updating skills
+
+Use the same two commands after canonical changes or when a new skill is added:
 
 ```powershell
 git pull
-```
-
-Because Codex and Claude Code point to the canonical local directories, updates become visible without copying files.
-
-After adding a brand-new skill directory, run the installer again once so links for that new skill are created:
-
-```powershell
 .\scripts\install-global.ps1
 ```
+
+Codex links see edits in the canonical checkout directly. Rerunning the installer synchronizes Claude Code's managed copies and creates delivery for new skills.
 
 ## Invocation
 

@@ -22,6 +22,22 @@ Purpose: manually ask an agent to surface important decisions from the current w
 
 Upstream: `davidondrej/skills` → `skills/thinking-and-docs/decisions/SKILL.md` (MIT). See `THIRD_PARTY_NOTICES.md`.
 
+### nativeprompt
+
+Canonical file: `skills/nativeprompt/SKILL.md`
+
+Purpose: improve or rewrite a prompt for the current target model using vendor-specific guidance, while treating the supplied prompt as data rather than executing it.
+
+Upstream: `edvardgrishin27/nativeprompt` → root `SKILL.md` (MIT). See `THIRD_PARTY_NOTICES.md`.
+
+Runtime dependency: the skill calls the `nativeprompt` Python CLI. Install it separately on each machine that will execute the skill:
+
+```powershell
+pipx install nativeprompt
+```
+
+The upstream package is named `nativeprompt`, requires Python 3.9+, and has no runtime dependencies beyond the standard library.
+
 ## Global installation for Codex and Claude Code
 
 Clone this repository once, then run from PowerShell:
@@ -33,7 +49,7 @@ Clone this repository once, then run from PowerShell:
 The installer discovers every directory under `skills/` that contains a `SKILL.md` and creates global links for it:
 
 ```text
-Codex:      ~/.agents/skills/<skill-name>
+Codex:       ~/.agents/skills/<skill-name>
 Claude Code: ~/.claude/skills/<skill-name>
 ```
 
@@ -59,8 +75,24 @@ After adding a brand-new skill directory, run the installer again once so links 
 
 Invocation syntax is environment-specific. The skill content is not.
 
-- Claude Code: use the skill's supported slash invocation when applicable, e.g. `/decisions`.
-- Codex: invoke the skill explicitly through the skill invocation supported by the current Codex client.
+### Claude Code
+
+Personal skills under `~/.claude/skills/<name>/SKILL.md` are directly invokable as `/name`.
+
+Examples:
+
+```text
+/decisions
+/nativeprompt
+```
+
+### Codex
+
+Invoke a skill explicitly with its skill name using the Codex skill invocation syntax supported by the current client. The NativePrompt upstream Codex integration documents:
+
+```text
+$nativeprompt улучши этот промпт для Codex: ‹промпт›
+```
 
 ## ChatGPT
 

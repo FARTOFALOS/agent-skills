@@ -15,6 +15,49 @@ $claudeRoot = Join-Path $HOME '.claude\skills'
 New-Item -ItemType Directory -Force -Path $codexRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $claudeRoot | Out-Null
 
+$skillsRootFull = [System.IO.Path]::GetFullPath($skillsRoot).TrimEnd('\', '/')
+
+function Test-ManagedSourcePath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    try {
+        $full = [System.IO.Path]::GetFullPath($Path)
+        return $full.StartsWith($skillsRootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+    } catch {
+        return $false
+    }
+}
+
+function Remove-StaleManagedSkills {
+    # Codex deliveries are links into this checkout. Remove only stale links
+    # that point under this repository's skills directory.
+    foreach ($item in Get-ChildItem -Force -Path $codexRoot) {
+        if ($item.LinkType -notin @('Junction', 'SymbolicLink')) { continue }
+
+        $managedTarget = @($item.Target) | Where-Object {
+            $_ -and (Test-ManagedSourcePath -Path ([string]$_))
+        } | Select-Object -First 1
+
+        if ($managedTarget -and -not (Test-Path -LiteralPath ([string]$managedTarget))) {
+            Remove-Item -Force -LiteralPath $item.FullName
+            Write-Host "REMOVED: stale Codex skill / $($item.Name)"
+        }
+    }
+
+    # Claude deliveries are real copied directories marked with their canonical
+    # source path. Remove only our managed copies whose canonical source vanished.
+    foreach ($item in Get-ChildItem -Force -Path $claudeRoot -Directory) {
+        $marker = Join-Path $item.FullName '.agent-skills-managed'
+        if (-not (Test-Path -LiteralPath $marker)) { continue }
+
+        $managedSource = (Get-Content -Raw -LiteralPath $marker).Trim()
+        if ((Test-ManagedSourcePath -Path $managedSource) -and -not (Test-Path -LiteralPath $managedSource)) {
+            Remove-Item -Recurse -Force -LiteralPath $item.FullName
+            Write-Host "REMOVED: stale Claude Code skill / $($item.Name)"
+        }
+    }
+}
+
 function Install-CodexSkill {
     param([Parameter(Mandatory = $true)][System.IO.DirectoryInfo]$Skill)
     $source = $Skill.FullName
@@ -69,9 +112,11 @@ function Sync-ClaudeSkill {
     Write-Host "SYNCED: Claude Code / $($Skill.Name) -> $target (source: $source)"
 }
 
+Remove-StaleManagedSkills
+
 foreach ($skill in $skills) {
     Install-CodexSkill -Skill $skill
     Sync-ClaudeSkill -Skill $skill
 }
 
-Write-Host 'Done. After git pull, rerun .\install.ps1 to sync Claude Code and add new skills. Codex links follow the canonical checkout directly.'
+Write-Host 'Done. After git pull, rerun .\install.ps1 to sync Claude Code, add new skills, and remove stale managed deliveries. Codex links follow the canonical checkout directly.'
